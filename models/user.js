@@ -5,6 +5,8 @@ const { handleMongooseError } = require("../helpers");
 
 const emailRegexp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 
+const subscriptionList = ["starter", "pro", "business"];
+
 const userSchema = new Schema(
   {
     password: {
@@ -20,7 +22,7 @@ const userSchema = new Schema(
     },
     subscription: {
       type: String,
-      enum: ["starter", "pro", "business"],
+      enum: subscriptionList,
       default: "starter",
     },
     token: String,
