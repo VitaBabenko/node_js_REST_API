@@ -10,7 +10,7 @@ const { HttpError } = require("../helpers");
 const { ctrlWrapper } = require("../decorators");
 const { SECRET_KEY } = process.env;
 
-const avatarDir = path.join(__dirname, "../", "public", "avatars");
+const avatarDir = path.resolve("public", "avatars");
 
 const register = async (req, res) => {
   const { email, password } = req.body;
