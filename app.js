@@ -1,7 +1,11 @@
 const express = require("express");
 const logger = require("morgan");
 const cors = require("cors");
+const Jimp = require("jimp");
 require("dotenv").config();
+
+const image = Jimp.read("./tmp/avatar.jpeg");
+image.write("./tmp/resize.jpeg");
 
 const authRouter = require("./routes/api/auth");
 const contactsRouter = require("./routes/api/contacts-router");
