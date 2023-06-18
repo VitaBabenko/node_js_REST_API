@@ -1,17 +1,11 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const gravatar = require("gravatar");
-const path = require("path");
 const { nanoid } = require("nanoid");
-const fs = require("fs/promises");
-const Jimp = require("jimp");
 
 const { User } = require("../models/user");
 const { HttpError, sendEmail } = require("../helpers");
 const { ctrlWrapper } = require("../decorators");
 const { SECRET_KEY, PROJECT_URL } = process.env;
-
-const avatarDir = path.resolve("public", "avatars");
 
 const register = async (req, res) => {
   const { email, password } = req.body;
@@ -23,14 +17,18 @@ const register = async (req, res) => {
 
   const hashPassword = await bcrypt.hash(password, 10);
   const verificationToken = nanoid();
-  const avatarURL = gravatar.url(email);
 
   const newUser = await User.create({
     ...req.body,
     password: hashPassword,
-    avatarURL,
     verificationToken,
   });
+
+  const payload = {
+    id: newUser._id,
+  };
+
+  const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "23h" });
 
   const verifyEmail = {
     to: email,
@@ -41,9 +39,11 @@ const register = async (req, res) => {
   await sendEmail(verifyEmail);
 
   res.status(201).json({
+    token,
+    verify: false,
     user: {
+      name: newUser.name,
       email: newUser.email,
-      subscription: "starter",
     },
   });
 };
@@ -99,7 +99,7 @@ const login = async (req, res) => {
   }
 
   if (!user.verify) {
-    throw HttpError(401, "Email not verified");
+    throw HttpError(409, "Email not verified");
   }
 
   const passwordCompare = await bcrypt.compare(password, user.password);
@@ -118,18 +118,22 @@ const login = async (req, res) => {
   res.json({
     token,
     user: {
-      email,
-      subscription: "starter",
+      name: user.name,
+      email: user.email,
     },
   });
 };
 
 const getCurrent = async (req, res) => {
-  const { email, subscription } = req.user;
+  const { token, name, email } = req.user;
+  console.log(req.user);
 
   res.json({
-    email,
-    subscription,
+    token,
+    user: {
+      name,
+      email,
+    },
   });
 };
 
@@ -140,39 +144,6 @@ const logout = async (req, res) => {
   res.status(204).json();
 };
 
-const updateSubscription = async (req, res) => {
-  const { _id } = req.user;
-
-  await User.findByIdAndUpdate(_id, req.body);
-
-  res.json({
-    subscription: req.body.subscription,
-  });
-};
-
-const updateAvatar = async (req, res) => {
-  const { _id } = req.user;
-  const { path: tempUpload, originalname } = req.file;
-  const filename = `${_id}_${originalname}`;
-  const resultUpload = path.join(avatarDir, filename);
-  Jimp.read(tempUpload)
-    .then((image) => {
-      image.resize(250, 250).write(resultUpload);
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-
-  await fs.rename(tempUpload, resultUpload);
-  const avatarURL = path.join("avatars", filename);
-
-  await User.findByIdAndUpdate(_id, { avatarURL });
-
-  res.json({
-    avatarURL,
-  });
-};
-
 module.exports = {
   register: ctrlWrapper(register),
   verify: ctrlWrapper(verify),
@@ -180,6 +151,4 @@ module.exports = {
   login: ctrlWrapper(login),
   getCurrent: ctrlWrapper(getCurrent),
   logout: ctrlWrapper(logout),
-  updateSubscription: ctrlWrapper(updateSubscription),
-  updateAvatar: ctrlWrapper(updateAvatar),
 };
