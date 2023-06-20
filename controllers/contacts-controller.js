@@ -17,16 +17,6 @@ const getAllContacts = async (req, res) => {
   );
 };
 
-const getContactById = async (req, res) => {
-  const { id } = req.params;
-  const result = await Contact.findById(id);
-  if (!result) {
-    throw HttpError(404, "Not found");
-  }
-
-  res.json(result);
-};
-
 const addContact = async (req, res) => {
   const { _id: owner } = req.user;
   console.log(req.user);
@@ -50,7 +40,6 @@ const deleteContactById = async (req, res) => {
 
 module.exports = {
   getAllContacts: ctrlWrapper(getAllContacts),
-  getContactById: ctrlWrapper(getContactById),
   addContact: ctrlWrapper(addContact),
   deleteContactById: ctrlWrapper(deleteContactById),
 };
